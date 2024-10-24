@@ -1,16 +1,12 @@
 import openai
-import asyncio
-import telegram
 from telegram import Update
 from telegram.ext import (
-    Updater,
     filters,
     CommandHandler,
     MessageHandler,
     ConversationHandler,
     ApplicationBuilder,
 )
-from telegram.ext.filters import Text, Command
 import schedule
 import time
 import os
@@ -157,14 +153,7 @@ async def simpleStart(update: Update, context):
 async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
-    # app.add_handler(MessageHandler(Text & ~Command, confirm_settings))
-    # app.add_handler(MessageHandler(Text & ~Command, time))
-    # app.add_handler(MessageHandler(Text & ~Command, language))
-    # app.add_handler(MessageHandler(Text & ~Command, level))
-    # app.add_handler(MessageHandler(Text & ~Command, topic))
 
-    # updater = Updater(BOT_TOKEN)
-    # dp = updater.dispatcher
     # Conversation handler
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
@@ -179,8 +168,6 @@ async def main():
         },
         fallbacks=[],
     )
-    # app.add_handler(conv_handler)
-    # dp.add_handler(conv_handler)
 
     # Schedule daily reminder at 10:00 AM
     # schedule.every().day.at("10:00").do(send_reminder, context=app.bot)
@@ -214,3 +201,5 @@ if __name__ == "__main__":
     )
     app.add_handler(conv_handler)
     app.run_polling()
+
+    # TODO: Scheduler stuff
