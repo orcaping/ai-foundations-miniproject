@@ -10,6 +10,9 @@ from telegram.ext import (
 import schedule
 import time
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 # Load environment variables from .env file
@@ -65,7 +68,7 @@ async def confirm_settings(update: Update, context):
         # Use stored preferences
         user_id = update.message.from_user.id
         preferences = user_preferences[user_id]
-        send_exercises(update, context, preferences)
+        await send_exercises(update, context, preferences)
         return ConversationHandler.END
     else:
         # Ask for new settings
@@ -124,12 +127,18 @@ async def send_exercises(update: Update, context, preferences):
         f"on the topic of {topic}. Include questions and tasks."
     )
 
-    response = client.completions.create(
-        engine="text-davinci-003", prompt=prompt, max_tokens=500
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": ""},
+            {"role": "user", "content": prompt},
+        ],
+        max_tokens=500
     )
 
     # Send OpenAI response to the user
-    exercises = response.choices[0].text
+    exercises = response.choices[0].message.content
+    print(exercises)
     await update.message.reply_text(exercises)
 
     # Ask the user to submit answers later
@@ -161,7 +170,9 @@ async def main():
         entry_points=[CommandHandler("start", start)],
         states={
             CONFIRM_SETTINGS: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, confirm_settings)
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND, confirm_settings
+                )
             ],
             TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_time)],
             LANGUAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, language)],
