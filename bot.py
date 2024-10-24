@@ -1,4 +1,4 @@
-import openai
+from openai import OpenAI
 from telegram import Update
 from telegram.ext import (
     filters,
@@ -23,9 +23,9 @@ def load_env():
 
 # Read tokens from environment variables
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-openai.api_key = OPENAI_API_KEY
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 # State definitions for conversation
 TIME, LANGUAGE, LEVEL, TOPIC, CONFIRM_SETTINGS = range(5)
@@ -75,7 +75,7 @@ async def confirm_settings(update: Update, context):
         return TIME
 
 
-async def time(update: Update, context):
+async def get_time(update: Update, context):
     context.user_data["time"] = update.message.text
     await update.message.reply_text("What language do you want to learn?")
     return LANGUAGE
@@ -84,6 +84,8 @@ async def time(update: Update, context):
 async def language(update: Update, context):
     context.user_data["language"] = update.message.text
     await update.message.reply_text("What level are you (A1-C2)?")
+    # TODO: if you boored
+    # await update.message.reply_poll("What level are you (A1-C2)?", ["A1", "A2", "B1", "B2", "C1", "C2"])
     return LEVEL
 
 
@@ -122,12 +124,12 @@ async def send_exercises(update: Update, context, preferences):
         f"on the topic of {topic}. Include questions and tasks."
     )
 
-    response = openai.Completion.create(
+    response = client.completions.create(
         engine="text-davinci-003", prompt=prompt, max_tokens=500
     )
 
     # Send OpenAI response to the user
-    exercises = response["choices"][0]["text"]
+    exercises = response.choices[0].text
     await update.message.reply_text(exercises)
 
     # Ask the user to submit answers later
@@ -161,7 +163,7 @@ async def main():
             CONFIRM_SETTINGS: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, confirm_settings)
             ],
-            TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, time)],
+            TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_time)],
             LANGUAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, language)],
             LEVEL: [MessageHandler(filters.TEXT & ~filters.COMMAND, level)],
             TOPIC: [MessageHandler(filters.TEXT & ~filters.COMMAND, topic)],
@@ -192,7 +194,7 @@ if __name__ == "__main__":
             CONFIRM_SETTINGS: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, confirm_settings)
             ],
-            TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, time)],
+            TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_time)],
             LANGUAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, language)],
             LEVEL: [MessageHandler(filters.TEXT & ~filters.COMMAND, level)],
             TOPIC: [MessageHandler(filters.TEXT & ~filters.COMMAND, topic)],
