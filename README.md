@@ -8,7 +8,6 @@ This repository contains the code for a Python-based language learning bot desig
 - **Customizable Exercises:** Tailors language exercises based on the user's input language, level, and study time.
 - **Bilingual Translation Tasks:** Presents words for translation from English to the desired language and vice versa.
 - **Multiple-Choice Questions:** Offers questions with 3 possible answers to challenge the user’s vocabulary.
-- **Text-Based Interactions:** All exercises are designed for clear text-based interactions.
 
 ## Usage
 
@@ -30,15 +29,17 @@ To use the bot, clone the repository and follow these steps:
 
 3. **User Inputs:**
    When running the bot, users will need to input:
+   - Study time (in minutes)
    - Desired language
    - Proficiency level (A1 to C2)
-   - Study time (in minutes)
+   - Specific topic of interest
 
    Example input flow:
    ```
-   Enter your desired language: Spanish
-   Enter your proficiency level (A1 to C2): A2
-   How much time do you have for studying (in minutes)? 20
+   Welcome! How much time do you have for learning today (in minutes)?: 5
+   What language do you want to learn?: spanish
+   What level are you (A1-C2)?: A2
+   Which topic would you like to learn today? (e.g., restaurant, directions, groceries): groceries
    ```
 
 4. **Exercise Generation:**
