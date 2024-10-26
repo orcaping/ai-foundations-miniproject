@@ -14,6 +14,7 @@ This repository contains the code for a Python-based language learning bot desig
 Some docs links for the tools to use
 
 - OpenAPI Assistant [https://platform.openai.com/docs/assistants/quickstart?context=without-streaming](https://platform.openai.com/docs/assistants/quickstart?context=without-streaming)
+- [Function calls](https://platform.openai.com/docs/assistants/tools/function-calling?context=streaming) which would allow to store or get already learnd words, sentence etc. for example. `Not implemented yet!`
 
 ## Usage
 
