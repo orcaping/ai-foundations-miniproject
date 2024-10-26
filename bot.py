@@ -10,9 +10,6 @@ from telegram.ext import (
 import schedule
 import time
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
 # Load environment variables from .env file
@@ -133,7 +130,7 @@ async def send_exercises(update: Update, context, preferences):
             {"role": "system", "content": ""},
             {"role": "user", "content": prompt},
         ],
-        max_tokens=500
+        max_tokens=500,
     )
 
     # Send OpenAI response to the user
@@ -170,9 +167,7 @@ async def main():
         entry_points=[CommandHandler("start", start)],
         states={
             CONFIRM_SETTINGS: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND, confirm_settings
-                )
+                MessageHandler(filters.TEXT & ~filters.COMMAND, confirm_settings)
             ],
             TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_time)],
             LANGUAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, language)],
