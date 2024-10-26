@@ -9,6 +9,12 @@ This repository contains the code for a Python-based language learning bot desig
 - **Bilingual Translation Tasks:** Presents words for translation from English to the desired language and vice versa.
 - **Multiple-Choice Questions:** Offers questions with 3 possible answers to challenge the user’s vocabulary.
 
+## Docs
+
+Some docs links for the tools to use
+
+- OpenAPI Assistant [https://platform.openai.com/docs/assistants/quickstart?context=without-streaming](https://platform.openai.com/docs/assistants/quickstart?context=without-streaming)
+
 ## Usage
 
 To use the bot, clone the repository and follow these steps:
