@@ -16,6 +16,7 @@ class ALingoAssistant:
             try:
                 ass = self.client.beta.assistants.retrieve(assistant_id=self.id)
                 self.assistant = ass
+                ## creates thread, maybe save threads and call existing ones.
                 self.thread = self.client.beta.threads.create()
             except Exception as e:
                 print(f"Failed to load assistant: {e}")
@@ -24,9 +25,11 @@ class ALingoAssistant:
         return True
 
     async def send_msg(self, msg):
+        ## Creates message
         t_msg = self.client.beta.threads.messages.create(
             thread_id=self.thread.id, role="user", content=msg
         )
+        ## Creates run
         run = self.client.beta.threads.runs.create_and_poll(
             thread_id=self.thread.id,
             assistant_id=self.assistant.id,
