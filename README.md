@@ -1,5 +1,12 @@
 # Python Language Learning Bot
 
+## Requirements
+
+**ENV**:
+- OPENAI_API_KEY
+- TELEGRAM_BOT_TOKEN
+- ASSISTANT_ID
+
 ## Overview
 
 This repository contains the code for a Python-based language learning bot designed to help users practice vocabulary and translation skills. The bot generates language exercises tailored to the user’s proficiency level (A1 to C2) and their available study time. Exercises include translation tasks (both directions) and multiple-choice questions, making it easy for users to improve their language skills through interactive text-based exercises.
