@@ -16,11 +16,14 @@ from user_store import UserStore, UserPreference
 
 # Load environment variables from .env file
 def load_env():
-    with open(".env") as f:
-        for line in f:
-            if line.strip() and not line.startswith("#"):
-                key, value = line.strip().split("=", 1)
-                os.environ[key] = value
+    try:
+        with open(".env") as f:
+            for line in f:
+                if line.strip() and not line.startswith("#"):
+                    key, value = line.strip().split("=", 1)
+                    os.environ[key] = value
+    except FileNotFoundError:
+        print("No .env file found.")
 
 
 load_env()
