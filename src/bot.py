@@ -11,6 +11,7 @@ import schedule
 import time
 import os
 from alingo_assistant import ALingoAssistant
+from user_store import UserStore, UserPreference
 
 
 # Load environment variables from .env file
@@ -29,11 +30,14 @@ BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 ASSISTANT_ID = os.getenv("ASSISTANT_ID")
 
 assistant = ALingoAssistant(api_key=OPENAI_API_KEY, id=ASSISTANT_ID)
+store = UserStore()
+store.load_from_json()
 # client = OpenAI(api_key=OPENAI_API_KEY)
+print("Saved user data:", store.get_size())
 
 # State definitions for conversation
-TIME, LANGUAGE, LEVEL, TOPIC, CONFIRM_SETTINGS = range(5)
-
+TIME, LANGUAGE, LEVEL, TOPIC, CONFIRM_SETTINGS, ANSWER = range(6)
+TEST_RESPONSE = 99
 # Dictionary to store user preferences
 user_preferences = {}
 
@@ -41,21 +45,25 @@ user_preferences = {}
 # Function to start the bot and check previous settings
 async def start(update: Update, context):
     user_id = update.message.from_user.id
-
-    # Check if the user has previous settings
-    if user_id in user_preferences:
-        preferences = user_preferences[user_id]
+    print(f"User ID: {user_id}")
+    print(f"User exists: {store.get_user(user_id)}")
+    print(store.get_size())
+    if store.check_user_exists(user_id):
+        print("User exists")
+        preferences = store.get_user(user_id)
         message = (
             f"Last time you set the following preferences:\n"
-            f"Time: {preferences['time']} minutes\n"
-            f"Language: {preferences['language']}\n"
-            f"Level: {preferences['level']}\n"
-            f"Topic: {preferences['topic']}\n"
+            f"Time: {preferences.time} minutes\n"
+            f"Language: {preferences.language}\n"
+            f"Level: {preferences.level}\n"
+            f"Topic: {preferences.topic}\n"
             "Do you want to keep these settings? (yes/no)"
         )
         await update.message.reply_text(message)
         return CONFIRM_SETTINGS
+
     else:
+        store.add_user(user_id)
         await update.message.reply_text(
             "Welcome! How much time do you have for learning today (in minutes)?"
         )
@@ -67,9 +75,7 @@ async def confirm_settings(update: Update, context):
 
     if response == "yes":
         # Use stored preferences
-        user_id = update.message.from_user.id
-        preferences = user_preferences[user_id]
-        await send_exercises(update, context, preferences)
+        await send_exercises(update, context)
         return ConversationHandler.END
     else:
         # Ask for new settings
@@ -103,40 +109,59 @@ async def topic(update: Update, context):
     context.user_data["topic"] = update.message.text
     # Save preferences
     user_id = update.message.from_user.id
-    user_preferences[user_id] = {
-        "time": context.user_data["time"],
-        "language": context.user_data["language"],
-        "level": context.user_data["level"],
-        "topic": context.user_data["topic"],
-    }
 
-    await send_exercises(update, context, user_preferences[user_id])
+    store.set_user_preference(
+        user_id=user_id,
+        time=context.user_data["time"],
+        language=context.user_data["language"],
+        level=context.user_data["level"],
+        topic=context.user_data["topic"],
+    )
+
+    await send_exercises(update, context)
+    return ANSWER
+
+
+async def submit_answer(update: Update, context):
+    user_id = update.message.from_user.id
+    preferences = store.get_user(user_id)
+    if not preferences:
+        await update.message.reply_text(
+            "Please set your preferences first using /start."
+        )
+        return
+    print("Got user Prefrences, checking answers")
+    # Save the user's answers
+    answers = update.message.text
+    prompt = f"Based on the given exercies, correct this answers: \n {answers} "
+    result = await assistant.check_answer(prompt)
+    # Calculate the score
+    score = 100
+    await update.message.reply_text(f"Your score: {score}%")
+    await update.message.reply_text(result)
+    # Ask the user to submit more answers
+    await update.message.reply_text(
+        "Submit more answers or type /next to get new exercises."
+    )
     return ConversationHandler.END
 
 
-async def send_exercises(update: Update, context, preferences):
-    time = preferences["time"]
-    language = preferences["language"]
-    level = preferences["level"]
-    topic = preferences["topic"]
-
+async def send_exercises(update: Update, context):
+    user_id = update.message.from_user.id
+    if store.check_user_exists(user_id):
+        preferences = store.get_user(user_id)
+    else:
+        await update.message.reply_text(
+            "Please set your preferences first using /start."
+        )
+        return
     # Create prompt for OpenAI based on user input
     prompt = (
-        f"Create a {time}-minute language learning exercise for {language} at {level} level "
-        f"on the topic of {topic}. Include questions and tasks."
+        f"Create a {preferences.time}-minute language learning exercise for {preferences.language} at {preferences.level} level "
+        f"on the topic of {preferences.topic}. Include questions and tasks."
     )
-    await assistant.load_assistant()
-    exercises = await assistant.send_msg(prompt)
-    # response = client.chat.completions.create(
-    #     model="gpt-3.5-turbo",
-    #     messages=[
-    #         {"role": "system", "content": ""},
-    #         {"role": "user", "content": prompt},
-    #     ],
-    #     max_tokens=500,
-    # )
 
-    # Send OpenAI response to the user
+    exercises = await assistant.send_msg(prompt)
 
     await update.message.reply_text(exercises)
 
@@ -148,14 +173,16 @@ async def send_exercises(update: Update, context, preferences):
 
 async def next_questions(update: Update, context):
     user_id = update.message.from_user.id
-
-    if user_id in user_preferences:
-        preferences = user_preferences[user_id]
-        await send_exercises(update, context, preferences)
+    store.load_from_json()
+    print(store.get_size())
+    if store.get_user(user_id):
+        await send_exercises(update, context)
     else:
         await update.message.reply_text(
             "Please set your preferences first using /start."
         )
+
+    return ANSWER
 
 
 async def show_commands(update: Update, context):
@@ -165,6 +192,20 @@ async def show_commands(update: Update, context):
         "/help - Show available commands",
     ]
     await update.message.reply_text("\n".join(commands))
+
+
+async def test(update: Update, context):
+    response = update.message.text
+
+    await update.message.reply_text("Write some text to test the response.")
+    return TEST_RESPONSE
+
+
+async def test_response(update: Update, context):
+    response = update.message.text
+    print(response)
+    await update.message.reply_text(response)
+    return ConversationHandler.END
 
 
 # Reminder function
@@ -183,13 +224,13 @@ async def simpleStart(update: Update, context):
 if __name__ == "__main__":
     print("Starting bot...")
     print(f"env: {BOT_TOKEN}")
-
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     conv_handler = ConversationHandler(
         entry_points=[
             CommandHandler("start", start),
             CommandHandler("next", next_questions),
             CommandHandler("help", show_commands),
+            CommandHandler("test", test),
         ],
         states={
             CONFIRM_SETTINGS: [
@@ -199,6 +240,10 @@ if __name__ == "__main__":
             LANGUAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, language)],
             LEVEL: [MessageHandler(filters.TEXT & ~filters.COMMAND, level)],
             TOPIC: [MessageHandler(filters.TEXT & ~filters.COMMAND, topic)],
+            ANSWER: [MessageHandler(filters.TEXT & ~filters.COMMAND, submit_answer)],
+            TEST_RESPONSE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, test_response)
+            ],
         },
         fallbacks=[],
     )

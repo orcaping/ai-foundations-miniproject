@@ -28,6 +28,13 @@ async def run():
         while res != "exit":
             reply = await a.send_msg(res)
             print(reply)
+            answer = input("Your Answer: ")
+            prompt= (
+                f"Question: {res}\n"
+                f"Answer: {answer}\n"
+            )
+            check = await a.check_answer(answer)
+            print(check)
             res = input("Ask me something:")
     except Exception as e:
         print(f"Failed to send message: {e}")
