@@ -1,0 +1,10 @@
+services:
+  alingo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: bash
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./src/:/app

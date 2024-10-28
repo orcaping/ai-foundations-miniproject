@@ -5,6 +5,27 @@ class ALingoAssistant:
     assistant = None
     thread = None
 
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_user_preferences",
+                "description": "Get Preferences of the current user'",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "user_id": {
+                            "type": "string",
+                            "description": "The user's ID.",
+                        },
+                    },
+                    "required": ["user_id"],
+                    "additionalProperties": False,
+                },
+            },
+        }
+    ]
+
     def __init__(self, api_key, id):
         self.client = OpenAI(api_key=api_key)
         self.id = id

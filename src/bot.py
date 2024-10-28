@@ -10,6 +10,7 @@ from telegram.ext import (
 import schedule
 import time
 import os
+from alingo_assistant import ALingoAssistant
 
 
 # Load environment variables from .env file
@@ -21,11 +22,14 @@ def load_env():
                 os.environ[key] = value
 
 
+load_env()
 # Read tokens from environment variables
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+ASSISTANT_ID = os.getenv("ASSISTANT_ID")
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+assistant = ALingoAssistant(api_key=OPENAI_API_KEY, id=ASSISTANT_ID)
+# client = OpenAI(api_key=OPENAI_API_KEY)
 
 # State definitions for conversation
 TIME, LANGUAGE, LEVEL, TOPIC, CONFIRM_SETTINGS = range(5)
@@ -84,8 +88,6 @@ async def get_time(update: Update, context):
 async def language(update: Update, context):
     context.user_data["language"] = update.message.text
     await update.message.reply_text("What level are you (A1-C2)?")
-    # TODO: if you boored
-    # await update.message.reply_poll("What level are you (A1-C2)?", ["A1", "A2", "B1", "B2", "C1", "C2"])
     return LEVEL
 
 
@@ -123,25 +125,46 @@ async def send_exercises(update: Update, context, preferences):
         f"Create a {time}-minute language learning exercise for {language} at {level} level "
         f"on the topic of {topic}. Include questions and tasks."
     )
-
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": ""},
-            {"role": "user", "content": prompt},
-        ],
-        max_tokens=500,
-    )
+    await assistant.load_assistant()
+    exercises = await assistant.send_msg(prompt)
+    # response = client.chat.completions.create(
+    #     model="gpt-3.5-turbo",
+    #     messages=[
+    #         {"role": "system", "content": ""},
+    #         {"role": "user", "content": prompt},
+    #     ],
+    #     max_tokens=500,
+    # )
 
     # Send OpenAI response to the user
-    exercises = response.choices[0].message.content
-    print(exercises)
+
     await update.message.reply_text(exercises)
 
     # Ask the user to submit answers later
     await update.message.reply_text(
         "Complete the exercises and submit your answers for scoring."
     )
+
+
+async def next_questions(update: Update, context):
+    user_id = update.message.from_user.id
+
+    if user_id in user_preferences:
+        preferences = user_preferences[user_id]
+        await send_exercises(update, context, preferences)
+    else:
+        await update.message.reply_text(
+            "Please set your preferences first using /start."
+        )
+
+
+async def show_commands(update: Update, context):
+    commands = [
+        "/start - Set your language learning preferences",
+        "/next - Get the next set of exercises",
+        "/help - Show available commands",
+    ]
+    await update.message.reply_text("\n".join(commands))
 
 
 # Reminder function
@@ -157,45 +180,17 @@ async def simpleStart(update: Update, context):
     await update.message.reply_text("Hello World")
 
 
-# Main function
-async def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-
-    # Conversation handler
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
-        states={
-            CONFIRM_SETTINGS: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, confirm_settings)
-            ],
-            TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_time)],
-            LANGUAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, language)],
-            LEVEL: [MessageHandler(filters.TEXT & ~filters.COMMAND, level)],
-            TOPIC: [MessageHandler(filters.TEXT & ~filters.COMMAND, topic)],
-        },
-        fallbacks=[],
-    )
-
-    # Schedule daily reminder at 10:00 AM
-    # schedule.every().day.at("10:00").do(send_reminder, context=app.bot)
-
-    # Start the bot
-    await app.run_polling()
-
-    # Keep the bot running
-    # while True:
-    #     schedule.run_pending()
-    #     time.sleep(1)
-
-
 if __name__ == "__main__":
     print("Starting bot...")
     print(f"env: {BOT_TOKEN}")
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
+        entry_points=[
+            CommandHandler("start", start),
+            CommandHandler("next", next_questions),
+            CommandHandler("help", show_commands),
+        ],
         states={
             CONFIRM_SETTINGS: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, confirm_settings)
