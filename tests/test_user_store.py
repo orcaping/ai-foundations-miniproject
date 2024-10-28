@@ -17,11 +17,9 @@ def setup_test_data():
     }
     with open("test_user_data.json", "w") as f:
         json.dump(test_data, f)
-
-
-@pytest.fixture(scope="module", autouse=True)
-def cleanup_test_data():
+    print("Setting up test data")
     yield
+    print("Tearing down test data")
     if os.path.exists("test_user_data.json"):
         os.remove("test_user_data.json")
 
@@ -53,8 +51,18 @@ def test_get_non_existent_user():
 
 
 def test_no_duplicate():
-    store = UserStore("test_user_data.json")
+    print("Testing no duplicate users")
+    store = UserStore("clean.json")
+
     store.add_user(4)
+    assert 1 == store.get_size()
+
     store.add_user(4)
+    assert 1 == store.get_size()
+
     store.add_user(4)
-    assert 2 == store.get_size()
+    assert 1 == store.get_size()
+
+    assert store.check_user_exists(4) is True
+
+    
