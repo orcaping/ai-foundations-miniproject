@@ -4,6 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile
     command: bash
+    env_file:
+      - .env
     tty: true
     stdin_open: true
     volumes:
